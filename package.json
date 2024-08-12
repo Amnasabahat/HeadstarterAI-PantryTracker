@@ -1,8 +1,11 @@
 {
   "dependencies": {
+<<<<<<< HEAD
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
     "@mui/material": "^5.16.7",
+=======
+>>>>>>> cb6a1c0 (chore: update dependencies and add Next.jsconfiguration files)
     "firebase": "^10.12.5",
     "firestore": "^1.1.6"
   }
