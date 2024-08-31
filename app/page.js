@@ -8,8 +8,10 @@ import {
   Button,
   Modal,
   TextField,
+  IconButton,
 } from '@mui/material'
-import { firestore } from './firebase'
+import { Add, Remove } from '@mui/icons-material'
+import { firestore } from './firebase' // Correct Firebase import
 
 import {
   collection,
@@ -46,20 +48,25 @@ export default function Home() {
   const [editItemName, setEditItemName] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [editQuantity, setEditQuantity] = useState(0)
 
   const updateInventory = async () => {
-    const snapshot = query(collection(firestore, 'inventory'))
-    const docs = await getDocs(snapshot)
-    const inventoryList = []
-    docs.forEach((doc) => {
-      inventoryList.push({ name: doc.id, ...doc.data() })
-    })
+    try {
+      const snapshot = query(collection(firestore, 'inventory'))
+      const docs = await getDocs(snapshot)
+      const inventoryList = []
+      docs.forEach((doc) => {
+        inventoryList.push({ name: doc.id, ...doc.data() })
+      })
 
-    // Sort alphabetically
-    inventoryList.sort((a, b) => a.name.localeCompare(b.name))
+      // Sort alphabetically
+      inventoryList.sort((a, b) => a.name.localeCompare(b.name))
 
-    setInventory(inventoryList)
-    setFilteredInventory(inventoryList)
+      setInventory(inventoryList)
+      setFilteredInventory(inventoryList)
+    } catch (error) {
+      console.error('Error fetching inventory:', error)
+    }
   }
 
   useEffect(() => {
@@ -73,7 +80,7 @@ export default function Home() {
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         const { quantity } = docSnap.data()
-        await setDoc(docRef, { quantity: quantity + 1 })
+        await setDoc(docRef, { quantity: quantity + 1 }, { merge: true })
       } else {
         await setDoc(docRef, { quantity: 1 })
       }
@@ -85,8 +92,9 @@ export default function Home() {
 
   const editItem = async () => {
     try {
+      if (!selectedItem) return
       const docRef = doc(collection(firestore, 'inventory'), selectedItem)
-      await updateDoc(docRef, { name: editItemName })
+      await updateDoc(docRef, { name: editItemName, quantity: editQuantity })
       setEditOpen(false)
       setSelectedItem(null)
       setEditItemName('')
@@ -126,11 +134,19 @@ export default function Home() {
   const handleOpen = () => setOpen(true)
   const handleClose = () => setOpen(false)
 
-  const handleEditOpen = (item) => {
+  const handleEditOpen = async (item) => {
     setSelectedItem(item)
     setEditItemName(item)
+    const docRef = doc(collection(firestore, 'inventory'), item)
+    const docSnap = await getDoc(docRef)
+    if (docSnap.exists()) {
+      setEditQuantity(docSnap.data().quantity)
+    } else {
+      setEditQuantity(0)
+    }
     setEditOpen(true)
   }
+
   const handleEditClose = () => setEditOpen(false)
 
   const handleSearch = (event) => {
@@ -188,7 +204,16 @@ export default function Home() {
               value={editItemName}
               onChange={(e) => setEditItemName(e.target.value)}
             />
-            <Button variant="outlined" onClick={editItem}>
+            <Stack direction="row" alignItems="center">
+              <IconButton onClick={() => setEditQuantity(Math.max(editQuantity - 1, 0))}>
+                <Remove />
+              </IconButton>
+              <Typography>{editQuantity}</Typography>
+              <IconButton onClick={() => setEditQuantity(editQuantity + 1)}>
+                <Add />
+              </IconButton>
+            </Stack>
+            <Button variant="contained" color="primary" onClick={editItem}>
               Save
             </Button>
           </Stack>
